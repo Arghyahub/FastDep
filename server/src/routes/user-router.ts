@@ -75,7 +75,7 @@ router.post('/new-chat', async (req: newChatRequest, res) => {
       console.log('Already friends')
       const group = await prisma.groups.findFirst({
         where: {
-          personl: true,
+          personal: true,
           AND: [
             // { personl: true },
             {
@@ -98,7 +98,7 @@ router.post('/new-chat', async (req: newChatRequest, res) => {
     const group = await prisma.groups.create({
       data: {
         name: `${req.user.name} ${friend_user.name}`,
-        personl: true,
+        personal: true,
         // add both users to group members
         GroupMembers: {
           createMany: {
