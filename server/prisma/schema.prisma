@@ -33,6 +33,7 @@ model Users {
 model Groups {
   id           Int            @id @default(autoincrement())
   personl      Boolean        @default(true)
+  name         String
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   GroupMembers GroupMembers[]
