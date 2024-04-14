@@ -25,7 +25,7 @@ const authMiddleware = async (req: authReq, res: Response, next: Function) => {
       return res.status(401).json({ message: 'Unauthorized', loggedIn: false })
     }
 
-    req.user = user
+    req.user = { ...user, password: '' }
     next()
   } catch (error) {
     console.log('==authMiddleware==\n', error)
