@@ -15,20 +15,26 @@ interface updateDetailsRequest extends authReq {
 
 interface newChatRequest extends authReq {
   body: {
-    friend_id: number
+    friend_id?: number
   }
 }
 
 interface getChatGroupIdReq extends authReq {
   body: {
-    group_id: number
+    group_id?: number
   }
 }
 
 interface postChatReq extends authReq {
   body: {
-    group_id: number
-    message: string
+    group_id?: number
+    message?: string
+  }
+}
+
+interface searchUsersReq extends authReq {
+  body: {
+    query?: string
   }
 }
 
@@ -201,6 +207,25 @@ router.post('/get-chat-groupId', async (req: getChatGroupIdReq, res) => {
     return res.status(200).json({ data: chats })
   } catch (error) {
     console.log('==get-chat-groupId==\n', error)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+})
+
+router.post('/search-users', async (req: searchUsersReq, res) => {
+  try {
+    if (!req.body.query) {
+      return res.status(400).json({ message: 'Query not provided' })
+    }
+
+    const users = await prisma.users.findMany({
+      where: {
+        name: { startsWith: req.body.query, mode: 'insensitive' },
+      },
+    })
+
+    return res.json({ data: users.map((user) => ({ ...user, password: '' })) })
+  } catch (error) {
+    console.log('==search-users==\n', error)
     return res.status(500).json({ message: 'Internal server error' })
   }
 })
