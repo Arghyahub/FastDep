@@ -32,7 +32,7 @@ interface postChatReq extends authReq {
   }
 }
 
-router.put('/update-details', async (req: updateDetailsRequest, res) => {
+router.patch('/update-details', async (req: updateDetailsRequest, res) => {
   try {
     const user = req.user
     const { avatar, about, tags } = req.body
@@ -42,16 +42,9 @@ router.put('/update-details', async (req: updateDetailsRequest, res) => {
 
     if (tags && tags.length > 0) {
       await prisma.tags.deleteMany({ where: { user_id: user.id } })
-      const TagPromises = tags.map((tag) => {
-        return prisma.tags.create({
-          data: {
-            user_id: user.id,
-            tag,
-          },
-        })
+      await prisma.tags.createMany({
+        data: tags.map((tag) => ({ tag, user_id: user.id })),
       })
-
-      await Promise.all(TagPromises)
     }
 
     res.json({ message: 'Details updated' })
@@ -83,19 +76,13 @@ router.post('/new-chat', async (req: newChatRequest, res) => {
         user_id: req.user.id,
         friend_id: friend_id,
       },
+      select: {
+        group: true,
+      },
     })
     if (isFriend) {
       console.log('Already friends')
-      const group = await prisma.friends.findFirst({
-        where: {
-          user_id: req.user.id,
-          friend_id: friend_id,
-        },
-        select: {
-          group: true,
-        },
-      })
-      return res.json({ message: 'Already friends', data: group?.group })
+      return res.json({ message: 'Already friends', data: isFriend?.group })
     }
 
     // if not, check if a group exist from friend to user else create a group
