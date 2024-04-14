@@ -73,50 +73,57 @@ router.post('/new-chat', async (req: newChatRequest, res) => {
     })
     if (isFriend) {
       console.log('Already friends')
-      const group = await prisma.groups.findFirst({
+      const group = await prisma.friends.findFirst({
         where: {
-          personal: true,
-          AND: [
-            // { personl: true },
-            {
-              GroupMembers: {
-                some: { user_id: req.user.id },
-              },
-            },
-            {
-              GroupMembers: {
-                some: { user_id: friend_id },
-              },
-            },
-          ],
+          user_id: req.user.id,
+          friend_id: friend_id,
+        },
+        select: {
+          group: true,
         },
       })
-      return res.json({ message: 'Already friends', data: group })
+      return res.json({ message: 'Already friends', data: group?.group })
     }
 
-    // if not, create a group
-    const group = await prisma.groups.create({
-      data: {
-        name: `${req.user.name} ${friend_user.name}`,
-        personal: true,
-        // add both users to group members
-        GroupMembers: {
-          createMany: {
-            data: [{ user_id: req.user.id }, { user_id: friend_id }],
+    // if not, check if a group exist from friend to user else create a group
+    let group = (
+      await prisma.friends.findFirst({
+        where: {
+          user_id: friend_id,
+          friend_id: req.user.id,
+        },
+        select: {
+          group: true,
+        },
+      })
+    )?.group
+
+    // If group doesn't exist, create a new group
+    if (!group) {
+      group = await prisma.groups.create({
+        data: {
+          name: `${req.user.name} ${friend_user.name}`,
+          personal: true,
+          // add both users to group members
+          GroupMembers: {
+            createMany: {
+              data: [{ user_id: req.user.id }, { user_id: friend_id }],
+            },
           },
         },
+      })
+    }
+
+    // Add friends
+    await prisma.friends.create({
+      data: {
+        user_id: req.user.id,
+        friend_id: friend_id,
+        group_id: group.id,
       },
     })
 
-    // Add friends
-    await prisma.friends.createMany({
-      data: [
-        { user_id: req.user.id, friend_id: friend_id },
-        { user_id: friend_id, friend_id: req.user.id },
-      ],
-    })
-
-    // return group_members and group
+    // return group
     return res.status(201).json({ data: group })
   } catch (error) {
     console.log('==new-chat==\n', error)
@@ -126,10 +133,13 @@ router.post('/new-chat', async (req: newChatRequest, res) => {
 
 router.get('/get-all-groups', async (req: authReq, res) => {
   try {
-    const group = await prisma.groupMembers.findMany({
-      where: { user_id: req.user.id },
-      include: {
-        group: true,
+    const group = await prisma.groups.findMany({
+      where: {
+        GroupMembers: {
+          some: {
+            user_id: req.user.id,
+          },
+        },
       },
     })
 

@@ -39,6 +39,7 @@ model Groups {
   updatedAt    DateTime       @updatedAt
   GroupMembers GroupMembers[]
   Chats        Chats[]
+  Friends      Friends[]
 }
 
 model GroupMembers {
@@ -68,8 +69,10 @@ model Friends {
   friend_id Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  group_id  Int
   user      Users    @relation(name: "user", fields: [user_id], references: [id])
   friend    Users    @relation(name: "friend", fields: [friend_id], references: [id])
+  group     Groups   @relation(fields: [group_id], references: [id])
 }
 
 model Tags {
