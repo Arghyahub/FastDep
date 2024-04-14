@@ -19,6 +19,19 @@ interface newChatRequest extends authReq {
   }
 }
 
+interface getChatGroupIdReq extends authReq {
+  body: {
+    group_id: number
+  }
+}
+
+interface postChatReq extends authReq {
+  body: {
+    group_id: number
+    message: string
+  }
+}
+
 router.put('/update-details', async (req: updateDetailsRequest, res) => {
   try {
     const user = req.user
@@ -147,6 +160,61 @@ router.get('/get-all-groups', async (req: authReq, res) => {
   } catch (error) {
     console.log('==get-all-groups==\n', error)
     res.status(500).json({ message: 'Internal server error' })
+  }
+})
+
+router.post('/post-chat', async (req: postChatReq, res) => {
+  try {
+    if (!req.body.group_id || !req.body.message)
+      return res
+        .status(400)
+        .json({ message: 'Group Id or message not provided' })
+
+    // Check if the person is part of the group
+    const isPart = await prisma.groupMembers.findFirst({
+      where: {
+        user_id: req.user.id,
+        group_id: req.body.group_id,
+      },
+    })
+    if (!isPart) {
+      console.log('post-chat not part of group')
+      return res.status(400).json({ message: 'You are not part of the group' })
+    }
+
+    await prisma.chats.create({
+      data: {
+        group_id: req.body.group_id,
+        user_id: req.user.id,
+        content: req.body.message,
+      },
+    })
+
+    return res.status(201).json({ success: true, message: 'successful' })
+  } catch (error) {
+    console.log('==post-chat==\n', error)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+})
+
+router.post('/get-chat-groupId', async (req: getChatGroupIdReq, res) => {
+  try {
+    if (!req.body.group_id)
+      return res.status(400).json({ message: 'Group Id not provided' })
+
+    const chats = await prisma.chats.findMany({
+      where: {
+        AND: [
+          { group_id: req.body.group_id },
+          { group: { GroupMembers: { some: { user_id: req.user.id } } } },
+        ],
+      },
+    })
+
+    return res.status(200).json({ data: chats })
+  } catch (error) {
+    console.log('==get-chat-groupId==\n', error)
+    return res.status(500).json({ message: 'Internal server error' })
   }
 })
 
