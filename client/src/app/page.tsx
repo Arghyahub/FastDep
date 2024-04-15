@@ -12,8 +12,8 @@ export default function Home() {
         </div>
         {/* buttons and options */}
         <div className="flex flex-row gap-2">
-          <Link href={'/auth:signup'}>Signup</Link>
-          <Link href={'/auth:login'}>Login</Link>
+          <Link href={'/auth/signup'}>Signup</Link>
+          <Link href={'/auth/login'}>Login</Link>
         </div>
       </div>
 
@@ -21,11 +21,11 @@ export default function Home() {
       <div className="flex flex-col justify-center items-center w-full h-full">
         <h1>MVP here</h1>
         <p>
-          <Link href={'/auth:signup'} className="font-semibold text-blue-600">
+          <Link href={'/auth/signup'} className="font-semibold text-blue-600">
             Signup
           </Link>{' '}
           or{' '}
-          <Link href={'/auth:login'} className="font-semibold text-blue-600">
+          <Link href={'/auth/login'} className="font-semibold text-blue-600">
             Login
           </Link>
         </p>
