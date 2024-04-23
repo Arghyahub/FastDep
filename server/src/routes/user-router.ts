@@ -1,4 +1,4 @@
-import { user } from './../db/db-types.d'
+import { user, UserCompleteType } from './../db/db-types.d'
 import { Router, Request, Response } from 'express'
 import authReq from '../middlewares/auth-types'
 import authMiddleware from '../middlewares/auth-middleware'
@@ -38,20 +38,48 @@ interface searchUsersReq extends authReq {
   }
 }
 
-router.patch('/update-details', async (req: updateDetailsRequest, res) => {
+router.get('/me', authMiddleware, async (req: authReq, res: Response) => {
+  try {
+    const tags = await prisma.tags.findMany({
+      where: { user_id: req.user.id },
+      select: { tag: true },
+    })
+    const user: UserCompleteType = req.user
+    user.tags = tags.map((tag) => tag.tag)
+    return res.status(200).json({ data: user })
+  } catch (error) {
+    console.log('==user-router==', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+})
+
+router.put('/update-details', async (req: updateDetailsRequest, res) => {
   try {
     const user = req.user
     const { avatar, about, tags } = req.body
 
-    if (avatar) user.avatar = avatar
-    if (about) user.about = about
+    if (!avatar || !about || !tags)
+      return res.status(500).json({ message: 'All fields not provided' })
 
-    if (tags && tags.length > 0) {
-      await prisma.tags.deleteMany({ where: { user_id: user.id } })
-      await prisma.tags.createMany({
-        data: tags.map((tag) => ({ tag, user_id: user.id })),
-      })
-    }
+    await prisma.tags.deleteMany({ where: { user_id: user.id } })
+    console.log(
+      'here',
+      tags.map((tag) => ({ user_id: user.id, tag })),
+    )
+    const updateTags = prisma.tags.createMany({
+      data: tags.map((tag) => ({ user_id: user.id, tag })),
+    })
+    const updateDetail = prisma.users.update({
+      where: { id: user.id },
+      data: { avatar, about },
+      select: {
+        id: true,
+      },
+    })
+
+    const [a, b] = await Promise.all([updateTags, updateDetail])
+
+    console.log(a, b)
 
     res.json({ message: 'Details updated' })
   } catch (error) {
